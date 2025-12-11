@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "university-grades-generator"
+version = "0.1.0"
+description = "Генерация тестовых данных для MongoDB"
+authors = [""]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+pydantic = "^2.8.0"
+pymongo = "^4.9.0"
+faker = "^28.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
