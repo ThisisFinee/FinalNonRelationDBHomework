@@ -1,8 +1,7 @@
 from typing import List
 from pymongo import MongoClient
-from bson import ObjectId
-
-from models import Student, Teacher, Course, CourseOffering, Enrollment, Grade
+from random import choice
+from models import Student, Teacher, Course
 from generators import gen_student, gen_teacher, gen_course, gen_course_offering, gen_enrollment, gen_grade
 
 def seed_database(
@@ -35,61 +34,87 @@ def seed_database(
 
     # 1. Студенты
     students: List[Student] = [gen_student() for _ in range(n_students)]
-    student_docs = [s.model_dump(by_alias=True) for s in students]
+    student_docs = []
+    for s in students:
+        doc = s.model_dump(by_alias=True)
+        if doc.get("_id") is None:
+            doc.pop("_id")
+        student_docs.append(doc)
+
     res_students = students_col.insert_many(student_docs)
     student_ids = list(res_students.inserted_ids)
 
     # 2. Преподаватели
     teachers: List[Teacher] = [gen_teacher() for _ in range(n_teachers)]
-    teacher_docs = [t.model_dump(by_alias=True) for t in teachers]
+    teacher_docs = []
+    for t in teachers:
+        doc = t.model_dump(by_alias=True)
+        if doc.get("_id") is None:
+            doc.pop("_id")
+        teacher_docs.append(doc)
     res_teachers = teachers_col.insert_many(teacher_docs)
     teacher_ids = list(res_teachers.inserted_ids)
 
     # 3. Курсы
     courses: List[Course] = [gen_course() for _ in range(n_courses)]
-    course_docs = [c.model_dump(by_alias=True) for c in courses]
+    course_docs = []
+    for c in courses:
+        doc = c.model_dump(by_alias=True)
+        if doc.get("_id") is None:
+            doc.pop("_id")
+        course_docs.append(doc)
     res_courses = courses_col.insert_many(course_docs)
     course_ids = list(res_courses.inserted_ids)
 
-    # 4. Course offerings (курс + препод + группа)
+    # 4. Сдача курса
     offerings_docs = []
     for course_id in course_ids:
         for i in range(avg_offerings_per_course):
-            teacher_id = ObjectId(
-                teacher_ids[i % len(teacher_ids)]
-            )
+            teacher_id = choice(teacher_ids)
             group = f"IU5-{i + 11}"
-            offering = gen_course_offering(course_id=course_id, teacher_id=teacher_id, group=group)
-            offerings_docs.append(offering.model_dump(by_alias=True))
+            offering = gen_course_offering(
+                course_id=course_id,
+                teacher_id=teacher_id,
+                group=group,
+            )
+            doc = offering.model_dump(by_alias=True)
+            if doc.get("_id") is None:
+                doc.pop("_id")
+            offerings_docs.append(doc)
 
     res_offerings = offerings_col.insert_many(offerings_docs)
     offering_ids = list(res_offerings.inserted_ids)
 
-    # 5. Enrollments (студент записан на поток)
+    # 5. Записи на поток
     enrollments_docs = []
     import random
 
     for student_id in student_ids:
-        # для каждого студента — случайный набор потоков
         offerings_for_student = random.sample(
             offering_ids,
             k=min(avg_courses_per_student, len(offering_ids)),
         )
         for off_id in offerings_for_student:
             enrollment = gen_enrollment(student_id=student_id, offering_id=off_id)
-            enrollments_docs.append(enrollment.model_dump(by_alias=True))
+            doc = enrollment.model_dump(by_alias=True)
+            if doc.get("_id") is None:
+                doc.pop("_id")
+            enrollments_docs.append(doc)
 
     res_enrollments = enrollments_col.insert_many(enrollments_docs)
     enrollment_count = len(res_enrollments.inserted_ids)
 
-    # 6. Grades (несколько оценок на каждую запись студента на поток)
+    # 6. Оценки
     grades_docs = []
     for enrollment_doc in enrollments_docs:
         student_id = enrollment_doc["studentId"]
         offering_id = enrollment_doc["courseOfferingId"]
         for _ in range(avg_grades_per_enrollment):
             grade = gen_grade(student_id=student_id, offering_id=offering_id)
-            grades_docs.append(grade.model_dump(by_alias=True))
+            doc = grade.model_dump(by_alias=True)
+            if doc.get("_id") is None:
+                doc.pop("_id")
+            grades_docs.append(doc)
 
     if grades_docs:
         grades_col.insert_many(grades_docs)

@@ -1,17 +1,22 @@
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 from bson import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
+from pydantic_core import core_schema
 
 
 class PyObjectId(ObjectId):
     @classmethod
     def __get_pydantic_core_schema__(cls, _source_type, _handler):
-        from pydantic_core import core_schema
-        return core_schema.no_info_after_validator_function(
-            cls.validate,
-            core_schema.str_schema(),
+        return core_schema.union_schema(
+            [
+                core_schema.is_instance_schema(ObjectId),
+                core_schema.no_info_after_validator_function(
+                    cls.validate,
+                    core_schema.str_schema(),
+                ),
+            ]
         )
 
     @classmethod
@@ -55,7 +60,7 @@ class Teacher(MongoModel):
     email: str
     department: str
     position: str
-    hiredAt: date
+    hiredAt: datetime
     isActive: bool = True
 
 
@@ -93,7 +98,7 @@ class Grade(MongoModel):
     assessmentName: Optional[str] = None
     maxScore: int
     score: int
-    grade: str                 # "5" / "зачет" и т.п.
+    grade: str                 
     weight: float
     date: datetime
     attempt: int = 1

@@ -34,7 +34,7 @@ def gen_teacher() -> Teacher:
     middle = fake.middle_name()
     dept = random.choice(["ФКН", "ФПМИ", "ФРТК"])
     position = random.choice(["ассистент", "старший преподаватель", "доцент", "профессор"])
-    hired = date.fromisoformat(fake.date_between(start_date="-10y", end_date="today").isoformat())
+    hired = fake.date_time_between(start_date="-10y", end_date="now")
 
     return Teacher(
         teacherNumber=f"T{fake.unique.random_number(digits=5)}",
